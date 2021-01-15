@@ -1,0 +1,88 @@
+@page "/signup"
+@using Radzen
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject NavigationManager UriHelper
+@inject Person _person
+@inject Use _use
+<!-- Navigation -->
+  <nav class="navbar navbar-light bg-light static-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">MovieDB</a>
+    </div>
+  </nav>
+
+ <!--Sign up form--> 
+  <div class="col-md-10 col-lg-8 col-xl-7 mx-auto">
+          <form>
+            <div class="form-row">
+              <div class="col-12 col-md-9 mb-2 mb-md-0">
+                  <RadzenTemplateForm TItem="Person" Data="@_person" Submit="@OnSubmit" InvalidSubmit="@OnInvalidSubmit">
+                    <RadzenFieldset Text="Personal information">
+                        <div class="row" style="margin-bottom: 48px">
+                            <div class="col-md-4 align-right">
+                                <RadzenLabel Text="Username" />
+                            </div>
+                            <div class="col">
+                                <RadzenTextBox style="display: block" Name="Username" @bind-Value="_person.UserName" />
+                                <RadzenRequiredValidator Component="Username" Text="Username is required" Style="position: absolute"/>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-bottom: 48px">
+                            <div class="col-md-4">
+                                <RadzenLabel Text="Password" />
+                            </div>
+                            <div class="col">
+                                <RadzenTextBox style="display: block" Name="Password" @bind-Value="_person.Password" />
+                                <RadzenRequiredValidator Component="Password" Text="Password is required"  Style="position: absolute"/>
+                            </div>
+                        </div>
+                        <RadzenButton ButtonType="ButtonType.Submit" Text="Sign Up"  ></RadzenButton>
+                        
+                    </RadzenFieldset>
+                </RadzenTemplateForm>
+            </div>  
+            </div>
+          </form>
+        </div>
+
+
+<!-- Icons Grid -->
+  <section class="features-icons bg-light text-center">
+    <IconsGrid></IconsGrid>
+  </section>
+
+  
+
+  <!-- Footer -->
+ <footer class="footer bg-light">
+     <Footer></Footer>
+ </footer>  
+
+
+
+@code {
+
+
+    Dictionary<DateTime, string> events = new Dictionary<DateTime, string>();
+
+    void Log(string eventName, string value)
+    {
+        events.Add(DateTime.Now, $"{eventName}: {value}");
+        _person.Members.Add(eventName+value, value);
+        if(_use.FromMovie)
+          UriHelper.NavigateTo(_use.url);
+        else
+          UriHelper.NavigateTo(" "); 
+    }
+
+    void OnSubmit(Person _person)
+    {
+        Log("Submit", JsonSerializer.Serialize(_person, new JsonSerializerOptions() {  WriteIndented = true }));
+    }
+
+    void OnInvalidSubmit(FormInvalidSubmitEventArgs args)
+    {
+        Log("InvalidSubmit", JsonSerializer.Serialize(args, new JsonSerializerOptions() {  WriteIndented = true }));
+    }
+}

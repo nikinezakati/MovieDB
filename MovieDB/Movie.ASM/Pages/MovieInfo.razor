@@ -1,0 +1,157 @@
+@page "/movie/{title}"
+@inject HttpClient Http
+@using System.Text.RegularExpressions
+@inject NavigationManager UriHelper
+@inject Person _person
+@inject Use _use
+<!-- Navigation -->
+  <nav class="navbar navbar-light bg-light static-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">MovieDB</a>
+    </div>
+  </nav>
+
+ <RadzenCard Style="width:600px; margin-bottom: 20px; height:500px;">
+    <div class="row">
+        <div class="col-md-6">
+            <div>Movie Title:</div>
+            <b>@MovieTitle</b>
+            <div style="margin-top:20px">Description:</div>
+            <b>@Movie.Description</b>
+            <div style="margin-top:20px">Year:</div>
+            <b>@Movie.Year</b>
+            <div style="margin-top:20px">Rating:</div>
+            <b>@Movie.Rating</b>
+            <div style="margin-top:20px">Votes:</div>
+            <b>@Movie.Votes</b>
+            <br />
+        </div>
+        <div class="col-md-6">
+            <div>Genre:</div>
+            <b>@Movie.Genre</b>
+            <div style="margin-top:20px">Director:</div>
+            <b>@Movie.Director</b>
+            <div style="margin-top:20px">Actors:</div>
+            <b>@Movie.Actors</b>
+            <div style="margin-top:20px">Runtime:</div>
+            <b>@Movie.Runtime</b>
+        </div>
+    </div>
+</RadzenCard>
+
+<form>
+  <div class="form-row">
+    <div class="col-12 col-md-9 mb-2 mb-md-0">
+        <EditForm Model="_comment" OnValidSubmit="SubmitComment">
+          <DataAnnotationsValidator />
+          <ValidationSummary />                
+              <InputText @bind-Value="_comment.Context" class="search_input"/> 
+      <button type="submit" @onclick=@NavigateToSignIn>Submit</button>
+    </EditForm>
+    </div>
+    <div class="col-12 col-md-3">
+    
+    </div>
+  </div>
+</form>
+
+ <div style="height: 400px;overflow: auto">
+        <div class="list-group">
+          @if (this._use.comments != null)
+          {
+            @if(_use.Signedin)
+            {
+              @foreach (string comment in _use.comments[MovieTitle])
+              {
+                  <button type="button" class="list-group-item list-group-item-action">@comment</button>      
+              }
+            }  
+          }
+          </div>
+  </div>
+
+
+<!-- Icons Grid -->
+  <section class="features-icons bg-light text-center">
+    <IconsGrid></IconsGrid>
+  </section>
+
+  
+
+  <!-- Footer -->
+ <footer class="footer bg-light">
+     <Footer></Footer>
+ </footer>  
+
+
+
+@code 
+{
+    public MovieModel Movie;
+    public string MovieTitle{get;set;}
+    [Parameter]
+    public string title { get; set; }
+    public Comment _comment;
+    protected override async Task OnInitializedAsync()
+    {
+      _comment=new Comment();
+        _use.url=$"/movie/{title}";
+        _comment=new Comment();
+        Movie=new MovieModel();
+        if(title.Contains('%'))
+        {
+            var temp=title.Split('%');
+            foreach (var t in temp)
+            {
+                MovieTitle+=t+" ";
+            }
+            MovieTitle=MovieTitle.TrimEnd();
+        }
+        else
+            MovieTitle=title;
+
+        await FindMovie();  
+    }
+    public async Task FindMovie()
+    {
+        HttpResponseMessage response = null;
+        try
+        {
+            var uri =@"http://localhost:6001/api/movie/findbyname/"+MovieTitle;
+            HttpRequestMessage httpRequest = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri(uri),
+            };
+            response = await Http.SendAsync(httpRequest);
+        } 
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+        var temp = response.Content.ReadAsStringAsync().Result;
+        var a=temp.Trim('[', ']');
+        var b=Regex.Split(a,",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)").ToList();
+        b=b.Select(e => e.Trim('"','\n',' ','\\'))
+            .ToList();           
+
+        Movie.Title=b[0];
+        Movie.Genre=b[1];
+        Movie.Description=b[2]; 
+        Movie.Director=b[3]; 
+        Movie.Actors=b[4]; 
+        Movie.Year=int.Parse(b[5]);   
+        Movie.Runtime=int.Parse(b[6]);      
+        Movie.Rating=float.Parse(b[7]); 
+        Movie.Votes=long.Parse(b[8]);   
+    }
+    public void SubmitComment()
+    {
+        _use.comments[MovieTitle].Add(_comment.Context);
+    }
+    void NavigateToSignIn()
+    {
+      _use.comments[MovieTitle].Add(_comment.Context);
+      UriHelper.NavigateTo("signin");
+    }
+}
